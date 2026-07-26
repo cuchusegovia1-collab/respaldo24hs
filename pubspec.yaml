@@ -1,0 +1,40 @@
+name: respaldo24hs
+description: "Respaldo 24 HS - Gestión de cámaras WiFi (ONVIF/RTSP) sin publicidad."
+publish_to: 'none'
+version: 0.1.0
+
+environment:
+  sdk: '>=3.3.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # Icono set moderno
+  cupertino_icons: ^1.0.6
+
+  # Cliente ONVIF puro Dart: descubrimiento (WS-Discovery), perfiles de media,
+  # obtención de la URI RTSP real del dispositivo, y control PTZ.
+  # Doc: https://pub.dev/packages/easy_onvif
+  easy_onvif: ^2.3.0
+
+  # Reproductor RTSP basado en libVLC (funciona con Android e iOS, incl. simuladores).
+  # Doc: https://pub.dev/packages/flutter_vlc_player
+  flutter_vlc_player: ^7.4.1
+
+  # Manejo de estado simple y probado.
+  provider: ^6.1.2
+
+  # Persistencia local del listado de cámaras (sin nube, sin cuenta, sin publicidad).
+  shared_preferences: ^2.2.3
+
+  # Generación de IDs únicos para cada cámara guardada.
+  uuid: ^4.4.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+
+flutter:
+  uses-material-design: true
