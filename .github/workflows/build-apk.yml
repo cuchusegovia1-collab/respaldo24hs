@@ -1,0 +1,64 @@
+name: Build Android APK
+
+# Se dispara solo al subir cambios a la rama principal, o manualmente
+# desde la pestaña "Actions" con el botón "Run workflow".
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Descargar el código del repositorio
+        uses: actions/checkout@v4
+
+      - name: Instalar Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+
+      - name: Respaldar el código fuente de la app
+        run: |
+          mkdir -p /tmp/backup
+          cp pubspec.yaml /tmp/backup/
+          cp -r lib /tmp/backup/
+
+      - name: Generar el andamiaje nativo (android/, ios/)
+        run: flutter create --org com.respaldo24hs --project-name respaldo24hs .
+
+      - name: Restaurar el código fuente de la app
+        run: |
+          cp /tmp/backup/pubspec.yaml ./pubspec.yaml
+          rm -rf lib
+          cp -r /tmp/backup/lib ./lib
+
+      - name: Agregar permisos de Android necesarios
+        run: |
+          python3 - <<'EOF'
+          path = "android/app/src/main/AndroidManifest.xml"
+          with open(path, "r") as f:
+              content = f.read()
+          perms = (
+              '    <uses-permission android:name="android.permission.INTERNET" />\n'
+              '    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />\n'
+              '    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />\n'
+          )
+          if "android.permission.INTERNET" not in content:
+              content = content.replace("<application", perms + "    <application", 1)
+              with open(path, "w") as f:
+                  f.write(content)
+          EOF
+
+      - name: Instalar dependencias del proyecto
+        run: flutter pub get
+
+      - name: Compilar el APK de producción
+        run: flutter build apk --release
+
+      - name: Publicar el APK como resultado descargable
+        uses: actions/upload-artifact@v4
+        with:
+          name: respaldo24hs-apk
+          path: build/app/outputs/flutter-apk/app-release.apk
