@@ -15,8 +15,9 @@ dependencies:
 
   # Cliente ONVIF puro Dart: descubrimiento (WS-Discovery), perfiles de media,
   # obtención de la URI RTSP real del dispositivo, y control PTZ.
+  # Versión fijada a la que se verificó contra el código fuente real.
   # Doc: https://pub.dev/packages/easy_onvif
-  easy_onvif: ^2.3.0
+  easy_onvif: ^3.1.3+1
 
   # Reproductor RTSP basado en libVLC (funciona con Android e iOS, incl. simuladores).
   # Doc: https://pub.dev/packages/flutter_vlc_player
@@ -27,6 +28,9 @@ dependencies:
 
   # Persistencia local del listado de cámaras (sin nube, sin cuenta, sin publicidad).
   shared_preferences: ^2.2.3
+
+  # Para guardar en disco las capturas de foto tomadas desde el video en vivo.
+  path_provider: ^2.1.3
 
   # Generación de IDs únicos para cada cámara guardada.
   uuid: ^4.4.0
