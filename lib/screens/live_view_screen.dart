@@ -1,5 +1,8 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_vlc_player/flutter_vlc_player.dart';
+import 'package:path_provider/path_provider.dart';
 import '../models/camera_device.dart';
 import '../services/onvif_camera_service.dart';
 import '../widgets/ptz_control_pad.dart';
@@ -65,10 +68,24 @@ class _LiveViewScreenState extends State<LiveViewScreen> {
 
   Future<void> _takeSnapshot() async {
     try {
-      await _controller.takeSnapshot();
+      // takeSnapshot() sólo devuelve los bytes de la imagen en memoria;
+      // hay que escribirlos a un archivo para que quede realmente guardada.
+      final bytes = await _controller.takeSnapshot();
+      if (bytes == null) throw Exception('Sin datos de imagen');
+
+      final dir = await getApplicationDocumentsDirectory();
+      final snapshotsDir = Directory('${dir.path}/respaldo24hs_capturas');
+      if (!await snapshotsDir.exists()) {
+        await snapshotsDir.create(recursive: true);
+      }
+
+      final fileName = 'captura_${DateTime.now().millisecondsSinceEpoch}.jpg';
+      final file = File('${snapshotsDir.path}/$fileName');
+      await file.writeAsBytes(bytes);
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Captura guardada')),
+          SnackBar(content: Text('Captura guardada: $fileName')),
         );
       }
     } catch (_) {
