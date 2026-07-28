@@ -1,23 +1,15 @@
 import 'package:easy_onvif/onvif.dart';
+import 'package:easy_onvif/probe.dart';
+import 'package:easy_onvif/shared.dart' show PtzSpeed, Vector2D, Vector1D;
 
 /// -----------------------------------------------------------------------
-/// NOTA IMPORTANTE PARA QUIEN CONTINÚE ESTE CÓDIGO
-/// -----------------------------------------------------------------------
-/// Este archivo se escribió sin poder compilarlo ni ejecutarlo contra un
-/// dispositivo real (el entorno donde se generó no tiene el SDK de Flutter
-/// ni acceso a pub.dev). La forma general de la API de `easy_onvif`
-/// (clases Onvif / media / ptz / probe) está confirmada por su
-/// documentación pública, pero los nombres exactos de métodos y
-/// parámetros han cambiado entre versiones del paquete (el propio
-/// changelog de easy_onvif lo advierte). Antes de dar por bueno este
-/// archivo:
-///   1. Corré `flutter pub get`.
-///   2. Si el compilador marca un método o parámetro como inexistente,
-///      abrí la documentación de la versión instalada:
-///      https://pub.dev/documentation/easy_onvif/latest/
-///   3. Ajustá solo esta clase — el resto de la app no depende de los
-///      detalles internos de easy_onvif, solo de los métodos públicos
-///      de OnvifCameraService de más abajo.
+/// Este archivo fue verificado contra el código fuente real del paquete
+/// `easy_onvif` versión 3.1.4 (repositorio:
+/// https://github.com/faithoflifedev/easy_onvif_workspace), clonado y
+/// revisado línea por línea para confirmar cada firma de método usada acá
+/// abajo. Si en el futuro actualizás la dependencia a una versión mayor
+/// (4.x en adelante) y algo deja de compilar, comparar contra ese
+/// repositorio o contra https://pub.dev/documentation/easy_onvif/latest/
 /// -----------------------------------------------------------------------
 
 /// Resultado de un dispositivo encontrado en la red local vía WS-Discovery.
@@ -40,14 +32,17 @@ class OnvifCameraService {
     Duration timeout = const Duration(seconds: 3),
   }) async {
     try {
-      final probeResults = await Onvif.probe(timeout: timeout);
-      return probeResults
-          .map((d) => DiscoveredDevice(ip: d.address, name: d.name))
-          .toList();
+      final probe = MulticastProbe(timeout: timeout.inSeconds);
+      await probe.probe();
+
+      return probe.onvifDevices.map((match) {
+        final ip = Uri.tryParse(match.xAddr)?.host ?? match.xAddr;
+        return DiscoveredDevice(
+          ip: ip,
+          name: match.name.isNotEmpty ? match.name : null,
+        );
+      }).toList();
     } catch (_) {
-      // Alguna versiones exponen el probe como `Probe.discover(...)` en vez
-      // de `Onvif.probe(...)`. Si esto falla al compilar, revisar el import
-      // `package:easy_onvif/probe.dart` y ajustar la llamada.
       return [];
     }
   }
@@ -73,8 +68,8 @@ class OnvifCameraService {
       if (profiles.isEmpty) return null;
 
       final token = profiles.first.token;
-      final streamUri = await onvif.media.getStreamUri(token);
-      return streamUri.uri;
+      // getStreamUri ya devuelve el String de la URI directamente.
+      return await onvif.media.getStreamUri(token);
     } catch (_) {
       return null;
     }
@@ -103,12 +98,14 @@ class OnvifCameraService {
 
       await onvif.ptz.continuousMove(
         token,
-        panTilt: PtzSpeed(x: pan, y: tilt),
-        zoom: PtzSpeed(x: zoom, y: 0),
+        velocity: PtzSpeed(
+          panTilt: Vector2D(x: pan, y: tilt),
+          zoom: Vector1D(x: zoom),
+        ),
       );
     } catch (_) {
-      // La cámara puede no tener motor PTZ, o el modelo puede exponer
-      // el movimiento con otra firma de método según la versión instalada.
+      // La cámara puede no tener motor PTZ, o no soportar ContinuousMove
+      // (algunos modelos solo soportan AbsoluteMove/RelativeMove).
     }
   }
 
